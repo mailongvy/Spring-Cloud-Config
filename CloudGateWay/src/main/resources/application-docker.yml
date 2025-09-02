@@ -1,0 +1,92 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: product-service
+          uri: lb://ProductService
+          predicates:
+            - Path=/product/**
+        
+        - id: order-service
+          uri: lb://OrderService
+          predicates:
+            - Path=/order/**
+
+        - id: stock-service
+          uri: lb://StockService
+          predicates:
+            - Path=/stock/**
+  zipkin:
+    base-url: http://zipkin:9411
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: false
+    hostname: api-gateway
+    instance-id: ${spring.application.name}:${eureka.instance.hostname}:${server.port}
+    home-page-url: http://localhost:${server.port}/
+    health-check-url: http://localhost:${server.port}/actuator/health
+    status-page-url: http://localhost:${server.port}/actuator/info
+
+# Local fallback properties nếu Config Server không khả dụng
+app:
+  name: API-Gateway-Docker
+  version: 0.0.1-SNAPSHOT
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway
+  endpoint:
+    health:
+      show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+    propagation:
+      type: b3
+      baggage:
+        enabled: true
+        correlation:
+          enabled: true
+          fields: service,method
+    brave:
+      spans:
+        http:
+          client:
+            requests: true
+          server:
+            requests: true
+      baggage:
+        enabled: true
+        correlation:
+          enabled: true
+      propagation:
+        extractors: b3
+        injectors: b3
+      current-trace-context: true
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
+
+logging:
+  level:
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO
+    org.springframework.cloud.gateway: DEBUG
+    root: INFO

@@ -1,0 +1,86 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: api-gateway
+  config:
+    import: "optional:configserver:http://localhost:8888"
+  zipkin:
+    base-url: http://localhost:9411
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+    
+  cloud:
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: true
+              # lower-case-service-id: true
+          routes:
+            # Product Service Routes
+            - id: product-service-route
+              uri: lb://ProductService
+              predicates:
+                - Path=/product/**
+                
+            # Order Service Routes  
+            - id: order-service-route
+              uri: lb://OrderService
+              predicates:
+                - Path=/order/**
+
+            # Stock Service Routes  
+            - id: stock-service-route
+              uri: lb://StockService
+              predicates:
+                - Path=/stock/**
+              
+              
+  
+  
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+    propagation:
+      type: b3
+    brave:
+      spans:
+        http:
+          client:
+            requests: true
+          server:
+            requests: true
+      baggage:
+        correlation:
+          enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+  endpoint:
+    health:
+      show-details: always
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    hostname: localhost
+    ip-address: 127.0.0.1
+    instance-id: ${spring.application.name}:${server.port}
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.cloud.loadbalancer: DEBUG
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO
+
