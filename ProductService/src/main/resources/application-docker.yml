@@ -1,0 +1,93 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ProductService
+  zipkin:
+    base-url: http://zipkin:9411
+  datasource:
+    url: jdbc:mysql://product-mysql:3306/productdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_ROOT_PASSWORD:rootpassword}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+    initial-instance-info-replication-interval-seconds: 5
+    instance-info-replication-interval-seconds: 5
+  instance:
+    prefer-ip-address: true
+    hostname: product-service
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
+  tracing:
+    sampling:
+      probability: 1.0
+    propagation:
+      type: b3
+      baggage:
+        enabled: true
+        correlation:
+          enabled: true
+          fields: service,method
+    brave:
+      spans:
+        http:
+          client:
+            requests: true
+          server:
+            requests: true
+      baggage:
+        enabled: true
+        correlation:
+          enabled: true
+      propagation:
+        extractors: b3
+        injectors: b3
+      current-trace-context: true
+
+logging:
+  level:
+    com.example.ProductService: DEBUG
+    org.springframework.cloud.openfeign: DEBUG
+
+---
+# Profile cho instance 1
+spring:
+  config:
+    activate:
+      on-profile: instance1
+server:
+  port: 8085
+
+---
+# Profile cho instance 2  
+spring:
+  config:
+    activate:
+      on-profile: instance2
+server:
+  port: 8086
